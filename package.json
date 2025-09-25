@@ -2,7 +2,7 @@
   "name": "a2",
   "version": "1.0.0",
   "description": "FIT2095 Student Management with Relationships",
-  "main": "app.js",
+  "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -19,5 +19,8 @@
     "express": "^5.1.0",
     "mongodb": "^6.20.0",
     "mongoose": "^8.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
   }
 }
