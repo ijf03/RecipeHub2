@@ -6,6 +6,7 @@ const { SID, PORT, MONGO_URL } = require("./config/constants");
 
 const recipeRouter = require("./routes/recipe-routes");
 const inventoryRouter = require("./routes/inventory-routes");
+const userRouter = require('./routes/user-routes');
 
 const app = express();
 
@@ -28,6 +29,7 @@ connectDB(MONGO_URL);
 //ROUTERS
 app.use("/", recipeRouter);
 app.use("/", inventoryRouter);
+app.use('/', userRouter);      
 
 // Home
 app.get('/', (req, res) => {

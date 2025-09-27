@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title><%= pageTitle %></title>
+  <link rel="stylesheet" href="/bootstrap/css/bootstrap.min.css">
+</head>
+<body class="bg-light">
+  <div class="container py-4">
+    <h1 class="mb-3">Create an account</h1>
+
+    <% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
+
+    <form method="post" action="/register-<%= SID %>" class="row g-3" novalidate>
+      <div class="col-md-6">
+        <label class="form-label">Full name</label>
+        <input name="fullName" class="form-control" required
+               pattern="^[A-Za-z\s'-]{2,100}$"
+               value="<%= form?.fullName || '' %>">
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Role</label>
+        <select name="role" class="form-select" required>
+          <option value="">Select role</option>
+          <% (roles || []).forEach(r => { %>
+            <option value="<%= r %>" <%= (form?.role===r?'selected':'') %>><%= r %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Email</label>
+        <input name="email" type="email" class="form-control" required
+               value="<%= form?.email || '' %>">
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Phone</label>
+        <input name="phone" class="form-control"
+               pattern="^(\+?\d[\d\s-]{6,})?$"
+               placeholder="+61 4xx xxx xxx or similar"
+               value="<%= form?.phone || '' %>">
+      </div>
+
+      <div class="col-12">
+        <label class="form-label">Password</label>
+        <input name="password" type="password" class="form-control" required minlength="8"
+               pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).{8,}$"
+               aria-describedby="pwHelp">
+        <div id="pwHelp" class="form-text">
+          8+ chars with uppercase, lowercase, number, and one of @$!%*?&.
+        </div>
+      </div>
+
+      <div class="col-12 d-flex gap-2">
+        <button class="btn btn-primary">Create account</button>
+        <a class="btn btn-outline-secondary" href="/login-<%= SID %>">Go to login</a>
+      </div>
+    </form>
+  </div>
+</body>
+</html>

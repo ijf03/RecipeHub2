@@ -1,9 +1,7 @@
-// routes/inventory-routes.js
 const express = require('express');
 const router = express.Router();
 const invCont = require('../controllers/inventory-controller');
-
-const SID = '34095756';
+const {SID} = require('../config/constants')
 
 // LIST
 router.get(`/inventory-${SID}`, invCont.list);
