@@ -89,7 +89,7 @@ exports.create = async (req, res, next) => {
     };
 
     await Inventory.create(doc);
-    res.redirect(`/inventory-${SID}`);
+    res.redirect(`/inventory-${SID}${req.userIdParam ? ('?userId=' + req.userIdParam) : ''}`);
   } catch (err) {
     res.status(400).render('inventory/inv_new', {
       pageTitle: 'New Inventory Item',
@@ -123,6 +123,6 @@ exports.remove = async (req, res, next) => {
   try {
     const SID = req.app.locals.SID;
     await Inventory.deleteOne({ inventoryId: req.params.inventoryId });
-    res.redirect(`/inventory-${SID}`);
+    res.redirect(`/inventory-${SID}${req.userIdParam ? ('?userId=' + req.userIdParam) : ''}`);
   } catch (err) { next(err); }
 };

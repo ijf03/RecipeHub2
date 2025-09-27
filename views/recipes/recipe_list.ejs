@@ -20,12 +20,13 @@
       </div>
 
       <div class="mb-3">
-        <a class="btn btn-primary me-2" href="/add-recipe-<%= SID %>">+ Add New Recipe</a>
+        <a class="btn btn-primary me-2" href="/add-recipe-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">+ Add New Recipe</a>
+
       </div>
 
       <div class="card mb-3 shadow-sm">
         <div class="card-body">
-          <form method="GET" action="/recipes-<%= SID %>" class="row g-2 align-items-end">
+          <form method="GET" action="/recipes-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>" class="row g-2 align-items-end">
             <div class="col-12 col-md-4">
               <label for="q" class="form-label">Search</label>
               <input id="q" name="q" class="form-control"
@@ -67,7 +68,7 @@
               <button type="submit" class="btn btn-primary w-100">Apply</button>
             </div>
             <div class="col-6 col-md-1">
-              <a href="/recipes-<%= SID %>" class="btn btn-outline-secondary">Clear</a>
+              <a href="/recipes-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>" class="btn btn-outline-secondary">Clear</a>
             </div>
           </form>
         </div>
@@ -121,6 +122,7 @@
                         <form method="POST" action="/delete-recipe-<%= SID %>" class="d-inline"
                               onsubmit="return confirm('Delete <%= r.title.replace(/\'/g, '&#39;') %>?');">
                           <input type="hidden" name="recipeId" value="<%= r.recipeId %>">
+                          <input type="hidden" name="userId" value="<%= userIdParam %>">
                           <button class="btn btn-sm btn-outline-danger">Delete</button>
                         </form>
                       </td>

@@ -91,7 +91,7 @@ exports.create = async (req, res, next) => {
     };
 
     await Recipe.create(doc);
-    res.redirect(`/recipes-${req.app.locals.SID}`);
+    res.redirect(`/recipes-${req.app.locals.SID}${req.userIdParam ? ('?userId=' + req.userIdParam) : ''}`);
   } catch (err) {
     res.status(400).render('recipes/recipe_new', {
       pageTitle: 'Add New Recipe',
@@ -138,6 +138,6 @@ exports.remove = async (req, res, next) => {
     }
 
     await Recipe.deleteOne({ $or: or });
-    res.redirect(`/recipes-${req.app.locals.SID}`);
+    res.redirect(`/recipes-${req.app.locals.SID}${req.userIdParam ? ('?userId=' + req.userIdParam) : ''}`);
   } catch (err) { next(err); }
 };

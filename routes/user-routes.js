@@ -1,4 +1,3 @@
-// routes/user-routes.js
 const express = require('express');
 const router = express.Router();
 const userCont = require('../controllers/user-controller');
@@ -9,5 +8,7 @@ router.post(`/register-${SID}`, userCont.register);
 
 router.get(`/login-${SID}`, userCont.loginForm);
 router.post(`/login-${SID}`, userCont.login);
+
+router.get(`/logout-${SID}`, userCont.logout);
 
 module.exports = router;

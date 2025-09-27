@@ -51,7 +51,8 @@ const userSchema = new mongoose.Schema({
   updatedAt: {
     type: String, //YYYY-MM-DD
     default: () => new Date().toISOString().slice(0, 10)
-  }
+  },
+  isLoggedIn: { type: Boolean, default: false }
 }, { versionKey: false });
 
 module.exports = mongoose.model('User', userSchema);

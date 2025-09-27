@@ -1,11 +1,10 @@
-// controllers/user-controller.js
 const User = require('../models/user');
 
-// Match your model + requirements
+// check email format
 const EMAIL_RX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-// Same complexity pattern as your model (uses @$!%*?&)
+// check password format
 const PW_RX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
-// Roles from your model: admin/chef/manager
+// preset roles
 const ROLES = ['admin', 'chef', 'manager'];
 
 async function nextUserId() {
@@ -23,7 +22,7 @@ function firstError(err) {
   return err.message || 'Validation error.';
 }
 
-// GET /register-<SID>
+// GET reg form
 exports.registerForm = (req, res) => {
   res.render('auth/register', {
     pageTitle: 'Sign up',
@@ -34,13 +33,13 @@ exports.registerForm = (req, res) => {
   });
 };
 
-// POST /register-<SID>
+// POST reg
 exports.register = async (req, res) => {
   const SID = req.app.locals.SID;
   const { email, password, fullName, role, phone } = req.body || {};
   const form = { email, fullName, role, phone };
 
-  // Server-side checks (mirror model + brief)
+  // Server checks
   if (!EMAIL_RX.test(String(email || '').toLowerCase())) {
     return res.status(400).render('auth/register', { pageTitle:'Sign up', SID, roles:ROLES, form, error:'Invalid email format.' });
   }
@@ -61,10 +60,9 @@ exports.register = async (req, res) => {
     }
 
     await User.create({
-      userId: await nextUserId(),                            // U-00001
+      userId: await nextUserId(),
       email: String(email).toLowerCase().trim(),
-      password,                                              // plain string (no hashing per core tasks)
-      fullName: String(fullName).trim(),
+      password,
       role,
       phone: String(phone || '').trim()
     });
@@ -77,7 +75,7 @@ exports.register = async (req, res) => {
   }
 };
 
-// GET /login-<SID>
+// GET login
 exports.loginForm = (req, res) => {
   res.render('auth/login', {
     pageTitle: 'Login',
@@ -87,7 +85,7 @@ exports.loginForm = (req, res) => {
   });
 };
 
-// POST /login-<SID>
+// POST login
 exports.login = async (req, res) => {
   const SID = req.app.locals.SID;
   const { email, password } = req.body || {};
@@ -98,14 +96,32 @@ exports.login = async (req, res) => {
   }
 
   try {
-    const user = await User.findOne({ email: String(email).toLowerCase().trim() }).lean();
-    if (!user || user.password !== String(password)) {      // plain compare
+    const user = await User.findOne({ email: String(email).toLowerCase().trim() });
+    if (!user || user.password !== String(password)) {
       return res.status(400).render('auth/login', { pageTitle:'Login', SID, form, error:'Invalid email or password.' });
     }
 
-    // No sessions yet (Core Task 3 just asks for secure login + error handling)
-    return res.redirect(`/recipes-${SID}`);
+    // set flag and SAVE
+    user.isLoggedIn = true;
+    await user.save();
+
+    //Redirect
+    return res.redirect(`/recipes-${SID}?userId=${user.userId}`);
   } catch (err) {
     return res.status(500).render('auth/login', { pageTitle:'Login', SID, form, error:'Something went wrong. Please try again.' });
   }
 };
+
+
+//logout
+exports.logout = async (req, res) => {
+  const SID = req.app.locals.SID;
+  const userId = req.userIdParam;  // came from query/body via the middleware
+
+  if (userId) {
+    await User.updateOne({ userId }, { $set: { isLoggedIn: false } });
+  }
+  // back to login (no userId in URL)
+  return res.redirect(`/login-${SID}`);
+};
+
