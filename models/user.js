@@ -47,7 +47,7 @@ const userSchema = new mongoose.Schema({
   createdAt: {
     type: String, //YYYY-MM-DD
     default: () => new Date().toISOString().slice(0, 10)
-  }
+  },
   updatedAt: {
     type: String, //YYYY-MM-DD
     default: () => new Date().toISOString().slice(0, 10)
