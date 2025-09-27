@@ -106,7 +106,7 @@ exports.login = async (req, res) => {
     await user.save();
 
     //Redirect
-    return res.redirect(`/recipes-${SID}?userId=${user.userId}`);
+    return res.redirect(`/?userId=${user.userId}`);
   } catch (err) {
     return res.status(500).render('auth/login', { pageTitle:'Login', SID, form, error:'Something went wrong. Please try again.' });
   }

@@ -8,6 +8,7 @@ const { SID, PORT, MONGO_URL } = require("./config/constants");
 const recipeRouter = require("./routes/recipe-routes");
 const inventoryRouter = require("./routes/inventory-routes");
 const userRouter = require('./routes/user-routes');
+const homeRoutes = require('./routes/home-routes');
 
 const app = express();
 
@@ -25,6 +26,8 @@ app.use(express.json());
 app.use('/bootstrap', express.static(
   path.join(__dirname, 'node_modules', 'bootstrap', 'dist')
 ));
+app.use(express.static(path.join(__dirname, 'public'))); // NEW
+
 
 app.use(async (req, res, next) => {
   try {
@@ -58,17 +61,7 @@ connectDB(MONGO_URL);
 app.use("/", recipeRouter);
 app.use("/", inventoryRouter);
 app.use('/', userRouter);  
-    
-
-// Home
-app.get('/', (req, res) => {
-  res.render('index', {
-    pageTitle: 'Home',
-    name: 'Student',
-    studentId: req.app.locals.SID,
-    SID: req.app.locals.SID
-  });
-});
+app.use('/', homeRoutes);
 
 // 404
 app.use((req, res) => res.status(404).render("errors/404", { pageTitle: "Not Found", url: req.originalUrl }));

@@ -1,7 +1,7 @@
 <nav class="navbar navbar-expand-md bg-body-tertiary fixed-top">
   <div class="container-fluid">
 
-    <a class="navbar-brand d-flex align-items-center" href="/">
+    <a class="navbar-brand d-flex align-items-center" href="/<%= userIdParam ? ('?userId=' + userIdParam) : '' %>">
       <img src="/images/RecipeHubLogo.png" alt="Logo" width="30" height="30" class="me-2">
       Recipe Hub
     </a>
