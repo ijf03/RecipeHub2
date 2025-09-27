@@ -13,7 +13,11 @@
     <div class="collapse navbar-collapse" id="mainNav">
       <ul class="navbar-nav ms-auto">
         <li class="nav-item">
-          <a class="nav-link active" aria-current="page" href="/">Home</a>
+          <a class="nav-link <%= (typeof pageTitle !== 'undefined' && pageTitle === 'Home') ? 'active' : '' %>"
+            aria-current="page"
+            href="/<%= userIdParam ? ('?userId=' + userIdParam) : '' %>">
+            Home
+          </a>
         </li>
         <li class="nav-item">
           <a class="nav-link"

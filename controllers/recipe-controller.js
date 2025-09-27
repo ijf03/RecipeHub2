@@ -15,6 +15,16 @@ async function uniqueRecipeId(Model) {
   return `R-${String(count + 1).padStart(5, '0')}`;
 }
 
+function firstError(err) {
+  if (!err) return null;
+  if (err.code === 11000) return 'Recipe ID or title must be unique.';
+  if (err.errors) {
+    const k = Object.keys(err.errors)[0];
+    return err.errors[k]?.message || 'Validation error.';
+  }
+  return err.message || 'Validation error.';
+}
+
 //GET recipes
 exports.list = async (req, res, next) => {
   try {
@@ -72,14 +82,30 @@ const toLines = (s) => String(s || '')
   .filter(Boolean);
 
 // POST new recipe
+// POST new recipe
 exports.create = async (req, res, next) => {
   try {
     const f = req.body;
+
+    // Duplicate title check (case-insensitive)
+    const exists = await Recipe.findOne({ title: new RegExp(`^${f.title}$`, 'i') }).lean();
+    if (exists) {
+      return res.status(400).render('recipes/recipe_new', {
+        pageTitle: 'Add New Recipe',
+        SID: req.app.locals.SID,
+        form: f,
+        mealTypes: MEAL,
+        cuisines: CUI,
+        difficulties: DIFF,
+        error: 'A recipe with that title already exists.'
+      });
+    }
+
     const doc = {
       recipeId: await uniqueRecipeId(Recipe),
-      userId: req.body.userId || 'U-00001',
-      title: f.title,
-      chef: f.chef,
+      userId: req.userIdParam || 'U-00001',
+      title: String(f.title || '').trim(),
+      chef: String(f.chef || '').trim(),
       mealType: f.mealType,
       cuisineType: f.cuisineType,
       prepTime: Number(f.prepTime),
@@ -100,7 +126,7 @@ exports.create = async (req, res, next) => {
       mealTypes: MEAL,
       cuisines: CUI,
       difficulties: DIFF,
-      error: err.message
+      error: firstError(err)
     });
   }
 };
