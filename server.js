@@ -30,7 +30,14 @@ app.use("/", recipeRouter);
 app.use("/", inventoryRouter);
 
 // Home
-app.get("/", (req, res) => res.redirect(`/recipes-${SID}`));
+app.get('/', (req, res) => {
+  res.render('index', {
+    pageTitle: 'Home',
+    name: 'Student',
+    studentId: req.app.locals.SID,
+    SID: req.app.locals.SID
+  });
+});
 
 // 404
 app.use((req, res) => res.status(404).render("errors/404", { pageTitle: "Not Found", url: req.originalUrl }));
