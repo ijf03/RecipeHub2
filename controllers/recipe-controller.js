@@ -132,7 +132,12 @@ exports.view = async (req, res, next) => {
 exports.remove = async (req, res, next) => {
   try {
     const id = req.body.recipeId;
-    await Recipe.deleteOne({ $or: [{ recipeId: id }, { _id: id }] });
+    const or = [{ recipeId: id }];
+    if (Types.ObjectId.isValid(id)) {
+      or.push({ _id: id });
+    }
+
+    await Recipe.deleteOne({ $or: or });
     res.redirect(`/recipes-${req.app.locals.SID}`);
   } catch (err) { next(err); }
 };
