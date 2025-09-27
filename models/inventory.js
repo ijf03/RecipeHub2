@@ -1,11 +1,10 @@
 const mongoose = require('mongoose');
 
-const UNITS = ['grams','kg','ml','litres','cups','tsp','tbsp','pieces','slices','bunches'];
+const UNITS = ["pieces", "kg", "g", "liters", "ml", "cups", "tbsp", "tsp", "dozen"];
 const CATEGORIES = [
-  'Vegetables','Fruits','Dairy','Meat','Seafood','Grains','Baking Supplies','Spices & Herbs',
-  'Condiments','Beverages','Snacks','Other'
+  "Vegetables", "Fruits", "Meat", "Dairy", "Grains", "Spices", "Beverages", "Frozen", "Canned", "Other"
 ];
-const LOCATIONS = ['Pantry','Fridge','Freezer','Other'];
+const LOCATIONS = ["Fridge", "Freezer", "Pantry", "Counter", "Cupboard"];
 
 const ISO_RE = /^\d{4}-\d{2}-\d{2}$/; // YYYY-MM-DD
 
@@ -24,11 +23,13 @@ const inventorySchema = new mongoose.Schema({
     type: String,
     required: true,
     minlength: 2,
+    maxlength: 50,
+    match: /^[A-Za-z\s-]+$/, // characters, no numbers or special characters except spaces and hyphens
     trim: true
   },
   quantity: {
     type: Number,
-    min: [0.0000001, 'Quantity must be a positive number.'],
+    min: [0.01, 'Quantity must be a positive number.'],
     required: true
   },
   unit: {
@@ -73,7 +74,9 @@ const inventorySchema = new mongoose.Schema({
   },
   cost: {
     type: Number,
-    min: [0, 'Cost must be a non-negative number.'],
+    min: [0.01, 'Cost must not be negative number.'],
+    max: [999.99, 'Cost is too high.'],
+    match: /^\d+(\.\d{1,2})?$/, // 2 decimal places
     required: true
   },
   createdDate: {

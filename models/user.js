@@ -9,35 +9,46 @@ const userSchema = new mongoose.Schema({
     unique: true,
     match: /^U-\d{5}$/, // U-00001
   },
-  fullName: {
-    type: String,
-    required: true,
-    minlength: 3,
-    trim: true
-  },
   email: {
     type: String,
     required: true,
     trim: true,
     lowercase: true,
+    minlength:2,
+    maxlength: 100,
     match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, // email format
     unique: true
   },
   password: {
     type: String,
-    default: ''
+    required: true,
+    minlength: 8,
+    trim: true,
+    match: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
   },
+  fullName: {
+    type: String,
+    required: true,
+    minlength:2,
+    maxlength: 100,
+    match: /^[A-Za-z\s'-]+$/, // characters, no numbers or special characters except spaces, hyphens, and apostrophes
+    trim: true
+  },  
   role: {
     type: String,
     enum: USER_ROLES,
-    default: 'manager'
+    default: 'chef'
   },
   phone: {
     type: String,
     trim: true,
     match: /^(\+?\d[\d\s-]{6,})?$/
   },
-  createdDate: {
+  createdAt: {
+    type: String, //YYYY-MM-DD
+    default: () => new Date().toISOString().slice(0, 10)
+  }
+  updatedAt: {
     type: String, //YYYY-MM-DD
     default: () => new Date().toISOString().slice(0, 10)
   }
