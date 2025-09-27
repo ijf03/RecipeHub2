@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title><%= pageTitle %></title>
+    <link rel="stylesheet" href="/bootstrap/css/bootstrap.min.css">
+
+  </head>
+  <body class="bg-light">
+    <%- include('../partials/nav') %>
+
+    <main class="container" style="margin-top:4.5rem">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h1 class="h3 m-0"><%= recipe.title %></h1>
+        <a class="btn btn-outline-secondary" href="/recipes-<%= SID %>">Back to Recipes</a>
+      </div>
+
+      <div class="row g-4 mb-1">
+        <div class="col-12">
+          <div class="card shadow-sm">
+            <div class="card-header">Details</div>
+            <div class="card-body">
+              <div class="row g-3">
+
+                <div class="col-md-6 col-xl-4">
+                  <dl class="row mb-0">
+                    <dt class="col-5 col-sm-4">Recipe ID</dt>
+                    <dd class="col-7 col-sm-8"><code class="text-danger"><%= recipe.recipeId %></code></dd>
+
+                    <dt class="col-5 col-sm-4">Chef</dt>
+                    <dd class="col-7 col-sm-8"><%= recipe.chef || '—' %></dd>
+
+                    <dt class="col-5 col-sm-4">Meal Type</dt>
+                    <dd class="col-7 col-sm-8"><%= recipe.mealType %></dd>
+                  </dl>
+                </div>
+
+                <div class="col-md-6 col-xl-4">
+                  <dl class="row mb-0">
+                    <dt class="col-5 col-sm-4">Cuisine</dt>
+                    <dd class="col-7 col-sm-8"><%= recipe.cuisineType %></dd>
+
+                    <dt class="col-5 col-sm-4">Prep Time</dt>
+                    <dd class="col-7 col-sm-8"><%= recipe.prepTime %> min</dd>
+
+                    <dt class="col-5 col-sm-4">Difficulty</dt>
+                    <dd class="col-7 col-sm-8"><%= recipe.difficulty %></dd>
+                  </dl>
+                </div>
+
+                <div class="row align-items-center mb-2">
+                  <div class="col-5 col-sm-4 fw-semibold">Servings</div>
+                  <div class="col-7 col-sm-8">
+                    <span id="servings-current"><%= recipe.servings %></span>
+
+                    <div class="d-flex gap-2 align-items-center mt-2">
+                      <div class="input-group input-group-sm" style="max-width: 200px;">
+                        <button class="btn btn-outline-secondary" type="button" id="servings-dec">−</button>
+                        <input id="servings-input" type="number" class="form-control text-center"
+                              min="1" step="1" value="<%= recipe.servings %>">
+                        <button class="btn btn-outline-secondary" type="button" id="servings-inc">+</button>
+                      </div>
+
+                      <button class="btn btn-sm btn-primary" type="button" id="servings-apply">Scale</button>
+                      <button class="btn btn-sm btn-outline-secondary" type="button" id="servings-reset">Reset</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4">
+        <div class="col-lg-9">
+          <div class="card shadow-sm h-100">
+            <div class="card-header">Instructions</div>
+            <div class="card-body">
+              <% if (recipe.instructions && recipe.instructions.length) { %>
+                <ol class="mb-0">
+                  <% recipe.instructions.forEach(function(step){ %>
+                    <li><%= step %></li>
+                  <% }) %>
+                </ol>
+              <% } else { %>
+                <p class="text-muted mb-0">No instructions listed.</p>
+              <% } %>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-3">
+          <div class="card shadow-sm h-100">
+            <div class="card-header">Ingredients</div>
+              <div class="card-body">
+                <% if (recipe.ingredients && recipe.ingredients.length) { %>
+                  <ul id="ingredients-list" class="mb-0">
+                    <% recipe.ingredients.forEach(function(it){ %>
+                      <li class="ingredient-line"><%= it %></li>
+                    <% }) %>
+                  </ul>
+                <% } else { %>
+                  <p class="text-muted mb-0">No ingredients listed.</p>
+                <% } %>
+              </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <%- include('../partials/footer') %>
+
+
+
+
+<script>
+(function () {  // function used to scale ingredient quantities 
+  const baseServings = Number(<%= JSON.stringify(Number(recipe.servings) || 1) %>) || 1;
+
+  const els = { // elements 
+    current: document.getElementById('servings-current'),
+    input:document.getElementById('servings-input'),
+    inc:document.getElementById('servings-inc'),
+    dec: document.getElementById('servings-dec'),
+    apply: document.getElementById('servings-apply'),
+    reset:document.getElementById('servings-reset'),
+    lines: Array.from(document.querySelectorAll('.ingredient-line'))
+  };
+
+  els.lines.forEach(li => { li.dataset.original = li.textContent.trim(); }); // for each line, store original text
+
+  function clampInt(x, min) { // clamp integer for min serv
+    x = Math.floor(Number(x) || baseServings);
+    return Math.max(min, x);
+  }
+
+  function formatQty(x) { // format quantity
+    if (!isFinite(x)) return '';
+    const rounded = Math.round(x * 100) / 100;
+    return (Math.abs(rounded - Math.round(rounded)) < 1e-9) ? String(Math.round(rounded)) : String(rounded);
+  }
+
+  function scaleLine(text, factor) {
+    let s = text;
+
+    s = s.replace(/\b(\d+)\s+(\d+)\/(\d+)\b/g, (_, a, b, c) => { // format for mixed number
+      const val = (Number(a) + Number(b)/Number(c)) * factor;
+      return formatQty(val);
+    });
+
+    s = s.replace(/\b(\d+)\/(\d+)\b/g, (_, a, b) => { //format fractions
+      const val = (Number(a)/Number(b)) * factor;
+      return formatQty(val);
+    });
+
+    s = s.replace(/(\d+(?:\.\d+)?)(?=[^\d]|$)/g, (m, n) => formatQty(Number(n) * factor)); // format decimal and ints
+
+    return s;
+  }
+
+
+  function applyScale() { // apply scaling to each ingredient
+    const target = clampInt(els.input.value, 1); // target servings
+    const factor = target / baseServings; //scale factor
+
+    els.lines.forEach(li => {//iterate thru each line
+      const original = li.dataset.original || li.textContent.trim(); //get org text 
+      li.textContent = factor === 1 ? original : scaleLine(original, factor); //scale / reset
+    });
+
+    els.current.textContent = target;
+    els.input.value = target;
+  }
+
+  els.inc.addEventListener('click',()=> { els.input.value = clampInt(els.input.value, 1) + 1; });
+  els.dec.addEventListener('click', ()=>{ els.input.value = Math.max(1, clampInt(els.input.value, 1) - 1); });
+  els.apply.addEventListener('click', applyScale);
+  els.reset.addEventListener('click', () => {
+    els.input.value = baseServings;
+    els.current.textContent = baseServings;
+    els.lines.forEach(li => { li.textContent = li.dataset.original || li.textContent; });
+  });
+})();
+</script>
+
+  </body>
+</html>
