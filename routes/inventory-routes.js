@@ -1,23 +1,21 @@
-const express = require("express");
-const invCont = require("../controllers/inventory-controller");
+// routes/inventory-routes.js
+const express = require('express');
+const router = express.Router();
+const invCont = require('../controllers/inventory-controller');
 
-module.exports = (SID) => {
-    const router = express.Router();
+const SID = '34095756';
 
-    // NEW
-    router.get(`/inventory/new-${SID}`, invCont.newForm);
-    router.post(`/inventory/create-${SID}`, invCont.create);
+// LIST
+router.get(`/inventory-${SID}`, invCont.list);
 
-    //GET
-    router.get(`/inventory/list-${SID}`, invCont.list);
-    router.get(`/inventory/view-${SID}/:inventoryId`, invCont.view);
+// NEW INV
+router.get(`/inventory/new-${SID}`, invCont.newForm);
+router.post(`/inventory/new-${SID}`, invCont.create);
 
-    //PDATE
-    router.get(`/inventory/edit-${SID}/:inventoryId`, invCont.editForm);
-    router.post(`/inventory/update-${SID}/:inventoryId`, invCont.update);
+// VIEW
+router.get(`/inventory/view-${SID}/:inventoryId`, invCont.view);
 
-    // DELETE
-    router.post(`/inventory/delete-${SID}/:inventoryId`, invCont.remove);
+// DELETE
+router.post(`/inventory/delete-${SID}/:inventoryId`, invCont.remove);
 
-    return router;
-};
+module.exports = router;

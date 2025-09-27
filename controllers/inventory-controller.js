@@ -1,88 +1,65 @@
 const Inventory = require('../models/inventory');
-const ISO_RE = /^\d{4}-\d{2}-\d{2}$/;
-const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
-const toDate = s => (s ? new Date(s) : null);
 
-const UNIT_OPTS = Inventory.schema.path('unit').enumValues;
-const CAT_OPTS  = Inventory.schema.path('category').enumValues;
-const LOC_OPTS  = Inventory.schema.path('location').enumValues;
+const UNIT_OPTS = Inventory.schema.path('unit')?.enumValues || ['grams','kg','ml','litres','cups','tsp','tbsp','pieces','slices','bunches'];
+const CAT_OPTS  = Inventory.schema.path('category')?.enumValues || [
+  'Vegetables','Fruits','Dairy','Meat','Seafood','Grains','Baking Supplies','Spices & Herbs',
+  'Condiments','Beverages','Snacks','Other'
+];
+const LOC_OPTS  = Inventory.schema.path('location')?.enumValues || ['Pantry','Fridge','Freezer','Other'];
 
-//validation errors
-function firstError(err) {
-  if (!err) return null;
-  if (err.code === 11000) return 'Duplicate ID or unique field already exists.';
-  if (err.errors) {
-    const k = Object.keys(err.errors)[0];
-    return err.errors[k]?.message || 'Validation error.';
-  }
-  return err.message || 'Validation error.';
+
+async function uniqueInventoryId(Model) {
+  const count = await Model.countDocuments();
+  return `I-${String(count + 1).padStart(5, '0')}`;
 }
 
-// Compute days left
-function annotateExpiry(list) {
-  const today = startOfDay(new Date());
-  return list.map(i => {
-    const exp = toDate(i.expirationDate);
-    let daysLeft = null, expSoon = false, expired = false;
-    if (exp && !isNaN(exp)) {
-      const diffDays = Math.ceil((startOfDay(exp) - today) / (1000*60*60*24));
-      daysLeft = diffDays;
-      expSoon = diffDays >= 0 && diffDays <= 7;
-      expired = diffDays < 0;
-    }
-    return { ...i, daysLeft, expSoon, expired, _expDate: exp };
-  });
-}
-
-exports.list = async (req, res) => {
+// GET inventory
+exports.list = async (req, res, next) => {
   try {
-    const { q = '', category = '', location = '', sort = '' } = req.query;
+    const SID = req.app.locals.SID;
+    const filters = {
+      q: (req.query.q || '').trim(),
+      category: req.query.category || '',
+      location: req.query.location || '',
+      sort: req.query.sort || ''
+    };
 
-    const filter = {};
-    if (category) filter.category = category;
-    if (location) filter.location = location;
-
-    // text search
-    let docs = await Inventory.find(filter).lean();
-
-    const norm = v => String(v ?? '').toLowerCase().trim();
-    if (q && q.trim()) {
-      const needle = norm(q);
-      docs = docs.filter(i =>
-        [i.ingredientName, i.unit, i.category, i.location, String(i.quantity)]
-          .some(v => norm(v).includes(needle))
-      );
+    const find = {};
+    if (filters.q) {
+      const rx = new RegExp(filters.q, 'i');
+      find.$or = [
+        { ingredientName: rx },
+        { category: rx },
+        { location: rx }
+      ];
     }
+    if (filters.category) find.category = filters.category;
+    if (filters.location) find.location = filters.location;
 
-    let list = annotateExpiry(docs);
+    let docs = await Inventory.find(find).lean();
 
-    // sort by expiration date (no date = bottom)
-    if (sort === 'expAsc' || sort === 'expDesc') {
-      const dir = sort === 'expAsc' ? 1 : -1;
-      list.sort((a, b) => {
-        if (!a._expDate && !b._expDate) return 0;
-        if (!a._expDate) return dir;
-        if (!b._expDate) return -dir;
-        return (a._expDate - b._expDate) * dir;
-      });
-    }
+    // sort "YYYY-MM-DD"
+    if (filters.sort === 'expAsc')  docs.sort((a,b) => String(a.expirationDate||'9999').localeCompare(String(b.expirationDate||'9999')));
+    if (filters.sort === 'expDesc') docs.sort((a,b) => String(b.expirationDate||'0000').localeCompare(String(a.expirationDate||'0000')));
 
-    res.render('inventory/list', {
+
+    res.render('inventory/inv_list', {
       pageTitle: 'Inventory',
-      inventory: list,
-      filters: { q, category, location, sort },
+      SID,
+      inventory: docs,
+      filters,
+      F: filters,
       categories: CAT_OPTS,
       locations: LOC_OPTS
     });
-  } catch (err) {
-    res.status(500).render('errors/404', { pageTitle: 'Error', url: req.originalUrl });
-  }
+  } catch (err) { next(err); }
 };
 
-// GET inventory
+// GET new item
 exports.newForm = (req, res) => {
-  res.render('inventory/new', {
-    pageTitle: 'Add Item',
+  res.render('inventory/inv_new', {
+    pageTitle: 'New Inventory Item',
+    SID: req.app.locals.SID,
     form: {},
     error: null,
     units: UNIT_OPTS,
@@ -91,37 +68,34 @@ exports.newForm = (req, res) => {
   });
 };
 
-// POST inv
-exports.create = async (req, res) => {
-  const SID = req.app.locals.SID;
+// POST new item
+exports.create = async (req, res, next) => {
   try {
-    const {
-      ingredientName, quantity, unit, category,
-      purchaseDate, expirationDate, location, cost
-    } = req.body;
+    const SID = req.app.locals.SID;
+    const form = req.body;
 
-    const inventoryId = makeId('I');
+    const doc = {
+      inventoryId: await uniqueInventoryId(Inventory),
+      userId: req.body.userId || 'U-00001',
+      ingredientName: form.ingredientName,
+      quantity: Number(form.quantity),
+      unit: form.unit,
+      category: form.category,
+      location: form.location,
+      purchaseDate: String(form.purchaseDate || '').trim(),
+      expirationDate: String(form.expirationDate || '').trim(),
+      cost: Number(form.cost || 0),
+      createdDate: new Date().toISOString().slice(0,10)
+    };
 
-    const doc = new Inventory({
-      inventoryId,
-      userId: String(req.body.userId || ''),
-      ingredientName: String(ingredientName || '').trim(),
-      quantity: Number(quantity),
-      unit,
-      category,
-      purchaseDate,
-      expirationDate,
-      location,
-      cost: Number(cost)
-    });
-
-    await doc.save();
-    res.redirect(`/inventory/list-${SID}`);
+    await Inventory.create(doc);
+    res.redirect(`/inventory-${SID}`);
   } catch (err) {
-    res.status(400).render('inventory/new', {
-      pageTitle: 'Add Item',
-      error: firstError(err),
+    res.status(400).render('inventory/inv_new', {
+      pageTitle: 'New Inventory Item',
+      SID: req.app.locals.SID,
       form: req.body,
+      error: err.message,
       units: UNIT_OPTS,
       categories: CAT_OPTS,
       locations: LOC_OPTS
@@ -130,95 +104,25 @@ exports.create = async (req, res) => {
 };
 
 // GET inv
-exports.view = async (req, res) => {
+exports.view = async (req, res, next) => {
   try {
     const doc = await Inventory.findOne({ inventoryId: req.params.inventoryId }).lean();
-    if (!doc) return res.status(404).render('errors/404', { pageTitle: 'Not Found', url: req.originalUrl });
-
-    const [annotated] = annotateExpiry([doc]);
-    res.render('inventory/view', {
-      pageTitle: annotated.ingredientName,
-      item: annotated
-    });
-  } catch (err) {
-    res.status(500).render('errors/404', { pageTitle: 'Error', url: req.originalUrl });
-  }
-};
-
-// GET by inv Id
-exports.editForm = async (req, res) => {
-  try {
-    const doc = await Inventory.findOne({ inventoryId: req.params.inventoryId }).lean();
-    if (!doc) return res.status(404).render('errors/404', { pageTitle: 'Not Found', url: req.originalUrl });
-
-    res.render('inventory/edit', {
-      pageTitle: `Edit ${doc.ingredientName}`,
-      form: doc,
-      error: null,
-      units: UNIT_OPTS,
-      categories: CAT_OPTS,
-      locations: LOC_OPTS
-    });
-  } catch (err) {
-    res.status(500).render('errors/404', { pageTitle: 'Error', url: req.originalUrl });
-  }
-};
-
-// POST inv Id
-exports.update = async (req, res) => {
-  const SID = req.app.locals.SID;
-  try {
-    const {
-      ingredientName, quantity, unit, category,
-      purchaseDate, expirationDate, location, cost
-    } = req.body;
-
-    const update = {
-      ingredientName: String(ingredientName || '').trim(),
-      quantity: Number(quantity),
-      unit,
-      category,
-      purchaseDate,
-      expirationDate,
-      location,
-      cost: Number(cost)
-    };
-
-    const doc = await Inventory.findOneAndUpdate(
-      { inventoryId: req.params.inventoryId },
-      update,
-      { new: true, runValidators: true }
-    );
-
-    if (!doc) return res.status(404).render('errors/404', { pageTitle: 'Not Found', url: req.originalUrl });
-    res.redirect(`/inventory/view-${SID}/${doc.inventoryId}`);
-  } catch (err) {
-    res.status(400).render('inventory/edit', {
-      pageTitle: 'Edit Item',
-      form: { ...req.body, inventoryId: req.params.inventoryId },
-      error: firstError(err),
-      units: UNIT_OPTS,
-      categories: CAT_OPTS,
-      locations: LOC_OPTS
-    });
-  }
-};
-
-//delete inv by id
-exports.remove = async (req, res) => {
-  const SID = req.app.locals.SID;
-  try {
-    const result = await Inventory.deleteOne({ inventoryId: req.params.inventoryId });
-    if (result.deletedCount === 0) {
+    if (!doc) {
       return res.status(404).render('errors/404', { pageTitle: 'Not Found', url: req.originalUrl });
     }
-    res.redirect(`/inventory/list-${SID}`);
-  } catch (err) {
-    res.status(500).render('errors/404', { pageTitle: 'Error', url: req.originalUrl });
-  }
+    res.render('inventory/inv_view', {
+      pageTitle: doc.ingredientName,
+      SID: req.app.locals.SID,
+      item: doc
+    });
+  } catch (err) { next(err); }
 };
 
-// simple ID generator
-function makeId(prefix) {
-  return `${prefix}-${String(Math.floor(Math.random() * 100000)).padStart(5, '0')}`;
-}
+// POST delete inv by id
+exports.remove = async (req, res, next) => {
+  try {
+    const SID = req.app.locals.SID;
+    await Inventory.deleteOne({ inventoryId: req.params.inventoryId });
+    res.redirect(`/inventory-${SID}`);
+  } catch (err) { next(err); }
+};

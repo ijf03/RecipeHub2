@@ -1,23 +1,21 @@
-const express = require("express");
-const recipeCont = require("../controllers/recipe-controller");
+// routes/recipe-routes.js
+const express = require('express');
+const router = express.Router();
+const recipeCont = require('../controllers/recipe-controller');
 
-module.exports = (SID) => {
-    const router = express.Router();
+const SID = '34095756';
 
-    // NEW
-    router.get(`/recipes/new-${SID}`, recipeCont.newForm);
-    router.post(`/recipes/create-${SID}`, recipeCont.create);
+// LIST
+router.get(`/recipes-${SID}`, recipeCont.list);
 
-    // GET
-    router.get(`/recipes/list-${SID}`, recipeCont.list);
-    router.get(`/recipes/view-${SID}/:recipeId`, recipeCont.view);
+// NEW RECIPE
+router.get(`/add-recipe-${SID}`, recipeCont.newForm);
+router.post(`/add-recipe-${SID}`, recipeCont.create);
 
-    // UPDATE
-    router.get(`/recipes/edit-${SID}/:recipeId`, recipeCont.editForm);
-    router.post(`/recipes/update-${SID}/:recipeId`, recipeCont.update);
+// VIEW
+router.get(`/recipe/:recipeId-${SID}`, recipeCont.view);
 
-    // DELETE
-    router.post(`/recipes/delete-${SID}/:recipeId`, recipeCont.remove);
+// DELETE
+router.post(`/delete-recipe-${SID}`, recipeCont.remove);
 
-    return router;
-};
+module.exports = router;
