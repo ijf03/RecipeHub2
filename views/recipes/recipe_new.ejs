@@ -25,8 +25,45 @@
 
         <div class="col-md-6">
           <label class="form-label">Chef Name*</label>
-          <input name="chef" class="form-control" required value="<%= form?.chef || '' %>"  placeholder="e.g .Gordon Ramsey">
+          <input name="chef" class="form-control" required
+                value="<%= form?.chef || '' %>" placeholder="e.g. Gordon Ramsay">
         </div>
+
+        <% if (currentUser) { %>
+          <div class="col-12">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="isMine" name="isMine"
+                    <%= form?.isMine ? 'checked' : '' %>>
+              <label class="form-check-label" for="isMine">
+                This recipe is mine (<%= currentUser.fullName %>)
+              </label>
+            </div>
+          </div>
+
+          <script>
+            (function () {
+              var box = document.getElementById('isMine');
+              var chef = document.querySelector('input[name="chef"]');
+              if (!box || !chef) return;
+              var myName = "<%= currentUser.fullName %>";
+
+              function sync() {
+                if (box.checked) {
+                  chef.value = myName;
+                  chef.readOnly = true;
+                  chef.required = false;
+                } else {
+                  if (chef.value === myName) chef.value = "";
+                  chef.readOnly = false;
+                  chef.required = true;
+                }
+              }
+              box.addEventListener('change', sync);
+              sync();
+            })();
+          </script>
+        <% } %>
+
 
         <div class="col-md-6">
           <label class="form-label">Meal Type*</label>

@@ -35,6 +35,7 @@
       <!-- Stats -->
       <section class="section">
         <div class="row g-3">
+
           <div class="col-12 col-md-4">
             <div class="card stat-card h-100">
               <div class="card-body text-center">
@@ -43,14 +44,21 @@
               </div>
             </div>
           </div>
+
           <div class="col-12 col-md-4">
             <div class="card stat-card h-100">
               <div class="card-body text-center">
                 <h6 class="text-uppercase text-muted mb-2">Recipes</h6>
-                <p class="stat-value"><%= recipeCount %></p>
+                <% if (currentUser && typeof myRecipeCount === 'number') { %>
+                  <p class="stat-value"><%= myRecipeCount %> / <%= recipeCount %></p>
+                  <small class="text-muted">My Recipes / Total</small>
+                <% } else { %>
+                  <p class="stat-value"><%= recipeCount %></p>
+                <% } %>
               </div>
             </div>
           </div>
+
           <div class="col-12 col-md-4">
             <div class="card stat-card h-100">
               <div class="card-body text-center">

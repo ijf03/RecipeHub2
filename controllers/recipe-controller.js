@@ -10,20 +10,29 @@ const CUI  = Recipe.schema.path('cuisineType')?.enumValues || [
 ];
 
 // helpers for unique R-00000 IDs
-async function uniqueRecipeId(Model) {
-  const count = await Model.countDocuments();
-  return `R-${String(count + 1).padStart(5, '0')}`;
+async function nextRecipeId() {
+  const last = await Recipe.findOne({}, { recipeId: 1 })
+    .sort({ recipeId: -1 })
+    .lean();
+
+  const lastNum = last ? parseInt(String(last.recipeId).slice(2), 10) : 0;
+  return `R-${String(lastNum + 1).padStart(5, '0')}`;
 }
 
 function firstError(err) {
   if (!err) return null;
-  if (err.code === 11000) return 'Recipe ID or title must be unique.';
+  if (err.code === 11000) {
+    const key = Object.keys(err.keyPattern || {})[0] || 'field';
+    const val = err.keyValue ? JSON.stringify(err.keyValue) : '';
+    return `Duplicate value for ${key}. ${val}`;
+  }
   if (err.errors) {
     const k = Object.keys(err.errors)[0];
     return err.errors[k]?.message || 'Validation error.';
   }
   return err.message || 'Validation error.';
 }
+
 
 //GET recipes
 exports.list = async (req, res, next) => {
@@ -81,13 +90,11 @@ const toLines = (s) => String(s || '')
   .map(x => x.trim())
   .filter(Boolean);
 
-// POST new recipe
-// POST new recipe
 exports.create = async (req, res, next) => {
   try {
     const f = req.body;
 
-    // Duplicate title check (case-insensitive)
+    //title check
     const exists = await Recipe.findOne({ title: new RegExp(`^${f.title}$`, 'i') }).lean();
     if (exists) {
       return res.status(400).render('recipes/recipe_new', {
@@ -101,11 +108,17 @@ exports.create = async (req, res, next) => {
       });
     }
 
+    // chef
+    let chefName = String(f.chef || '').trim();
+    if ((f.isMine === 'on' || f.isMine === 'true' || f.isMine === '1') && req.currentUser) {
+      chefName = req.currentUser.fullName;
+    }
+
     const doc = {
-      recipeId: await uniqueRecipeId(Recipe),
-      userId: req.userIdParam || 'U-00001',
+      recipeId: await nextRecipeId(),
+      userId: (req.currentUser && req.currentUser.userId) || req.userIdParam || '',
       title: String(f.title || '').trim(),
-      chef: String(f.chef || '').trim(),
+      chef: chefName,
       mealType: f.mealType,
       cuisineType: f.cuisineType,
       prepTime: Number(f.prepTime),
@@ -116,18 +129,16 @@ exports.create = async (req, res, next) => {
       createdDate: new Date().toISOString().slice(0, 10)
     };
 
+
     await Recipe.create(doc);
     res.redirect(`/recipes-${req.app.locals.SID}${req.userIdParam ? ('?userId=' + req.userIdParam) : ''}`);
   } catch (err) {
-    res.status(400).render('recipes/recipe_new', {
-      pageTitle: 'Add New Recipe',
-      SID: req.app.locals.SID,
-      form: req.body,
-      mealTypes: MEAL,
-      cuisines: CUI,
-      difficulties: DIFF,
-      error: firstError(err)
-    });
+    console.error('[createRecipe] DUP?', {
+    code: err.code,
+    keyPattern: err.keyPattern,
+    keyValue: err.keyValue,
+    message: err.message
+  });
   }
 };
 

@@ -14,6 +14,9 @@ const recipeSchema = new mongoose.Schema({
     unique: true,
     match: /^R-\d{5}$/ // R-00001
   },
+  userId: { 
+    type: String
+  },
   title: {
     type: String,
     required: true,
