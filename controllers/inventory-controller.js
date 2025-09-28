@@ -6,7 +6,9 @@ const CAT_OPTS  = Inventory.schema.path('category')?.enumValues || [
   'Condiments','Beverages','Snacks','Other'
 ];
 const LOC_OPTS  = Inventory.schema.path('location')?.enumValues || ['Pantry','Fridge','Freezer','Other'];
+const LOW_STOCK_THRESHOLD = 5;
 
+const today = new Date().toISOString().slice(0,10);
 
 async function uniqueInventoryId(Model) {
   const count = await Model.countDocuments();
@@ -37,6 +39,10 @@ exports.list = async (req, res, next) => {
     if (filters.location) find.location = filters.location;
 
     let docs = await Inventory.find(find).lean();
+    docs = docs.map(d => ({
+      ...d,
+      lowStock: Number(d.quantity) < LOW_STOCK_THRESHOLD
+    }));
 
     // sort "YYYY-MM-DD"
     if (filters.sort === 'expAsc')  docs.sort((a,b) => String(a.expirationDate||'9999').localeCompare(String(b.expirationDate||'9999')));
@@ -50,7 +56,8 @@ exports.list = async (req, res, next) => {
       filters,
       F: filters,
       categories: CAT_OPTS,
-      locations: LOC_OPTS
+      locations: LOC_OPTS,
+      lowStockThreshold: LOW_STOCK_THRESHOLD 
     });
   } catch (err) { next(err); }
 };
@@ -125,4 +132,82 @@ exports.remove = async (req, res, next) => {
     await Inventory.deleteOne({ inventoryId: req.params.inventoryId });
     res.redirect(`/inventory-${SID}${req.userIdParam ? ('?userId=' + req.userIdParam) : ''}`);
   } catch (err) { next(err); }
+};
+
+exports.expiringSoon = async (req, res, next) => {
+  try {
+    const soon = new Date();
+    soon.setDate(soon.getDate() + 7); //in 7 days
+    const docs = await Inventory.find({
+      expirationDate: { $lte: soon.toISOString().slice(0,10) }
+    }).lean();
+
+    res.render('inventory/expiring', {
+      pageTitle: 'Expiring Soon',
+      SID: req.app.locals.SID,
+      items: docs
+    });
+  } catch (err) { next(err); }
+};
+
+exports.value = async (req, res, next) => {
+  try {
+    const result = await Inventory.aggregate([
+      { $group: { _id: null, totalValue: { $sum: { $multiply: ["$quantity", "$cost"] } } } }
+    ]);
+    const totalValue = result[0]?.totalValue || 0;
+
+    res.render('inventory/value', {
+      pageTitle: 'Inventory Value',
+      SID: req.app.locals.SID,
+      totalValue
+    });
+  } catch (err) { next(err); }
+};
+
+exports.editForm = async (req, res, next) => {
+  try {
+    const item = await Inventory.findOne({ inventoryId: req.params.inventoryId }).lean();
+    if (!item) return res.status(404).render('errors/404', { pageTitle:'Not Found', url:req.originalUrl });
+
+    res.render('inventory/inv_edit', {
+      pageTitle: 'Edit Inventory',
+      SID: req.app.locals.SID,
+      form: item,
+      units: UNIT_OPTS,
+      categories: CAT_OPTS,
+      locations: LOC_OPTS,
+      error: null
+    });
+  } catch (err) { next(err); }
+};
+
+exports.update = async (req, res, next) => {
+  try {
+    const { inventoryId } = req.params;
+    const form = req.body;
+    await Inventory.updateOne({ inventoryId }, {
+      $set: {
+        ingredientName: form.ingredientName,
+        quantity: Number(form.quantity),
+        unit: form.unit,
+        category: form.category,
+        location: form.location,
+        purchaseDate: form.purchaseDate,
+        expirationDate: form.expirationDate,
+        cost: Number(form.cost)
+      }
+    });
+    res.redirect(`/inventory-${req.app.locals.SID}${req.userIdParam ? ('?userId=' + req.userIdParam) : ''}`);
+  } catch (err) {
+    res.status(400).render('inventory/inv_edit', {
+      pageTitle: 'Edit Inventory',
+      SID: req.app.locals.SID,
+      form: req.body,
+      units: UNIT_OPTS,
+      categories: CAT_OPTS,
+      locations: LOC_OPTS,
+      error: err.message
+    });
+  }
 };

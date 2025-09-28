@@ -135,7 +135,7 @@
 
         <div class="col-12">
           <button class="btn btn-primary">Save Recipe</button>
-          <a class="btn btn-secondary" href="/recipes-<%= SID %>">Cancel</a>
+          <a class="btn btn-secondary" href="/recipes-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">Cancel</a>
         </div>
       </form>
     </main>

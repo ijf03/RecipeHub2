@@ -16,4 +16,8 @@ router.get(`/inventory/view-${SID}/:inventoryId`, invCont.view);
 // DELETE
 router.post(`/inventory/delete-${SID}/:inventoryId`, invCont.remove);
 
+//EDIT
+router.get(`/inventory/edit-${SID}/:inventoryId`, invCont.editForm);
+router.post(`/inventory/edit-${SID}/:inventoryId`, invCont.update);
+
 module.exports = router;

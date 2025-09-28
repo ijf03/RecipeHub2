@@ -19,19 +19,19 @@ async function nextRecipeId() {
   return `R-${String(lastNum + 1).padStart(5, '0')}`;
 }
 
-function firstError(err) {
-  if (!err) return null;
-  if (err.code === 11000) {
-    const key = Object.keys(err.keyPattern || {})[0] || 'field';
-    const val = err.keyValue ? JSON.stringify(err.keyValue) : '';
-    return `Duplicate value for ${key}. ${val}`;
+function firstError(e) {
+    if (!e) return null;
+    if (e.code === 11000) {
+      const key = Object.keys(e.keyPattern || {})[0] || 'field';
+      const val = e.keyValue ? JSON.stringify(e.keyValue) : '';
+      return `Duplicate value for ${key}. ${val}`;
+    }
+    if (e.errors) {
+      const k = Object.keys(e.errors)[0];
+      return e.errors[k]?.message || 'Validation error.';
+    }
+    return e.message || 'Validation error.';
   }
-  if (err.errors) {
-    const k = Object.keys(err.errors)[0];
-    return err.errors[k]?.message || 'Validation error.';
-  }
-  return err.message || 'Validation error.';
-}
 
 
 //GET recipes
@@ -98,14 +98,14 @@ exports.create = async (req, res, next) => {
     const exists = await Recipe.findOne({ title: new RegExp(`^${f.title}$`, 'i') }).lean();
     if (exists) {
       return res.status(400).render('recipes/recipe_new', {
-        pageTitle: 'Add New Recipe',
-        SID: req.app.locals.SID,
-        form: f,
-        mealTypes: MEAL,
-        cuisines: CUI,
-        difficulties: DIFF,
-        error: 'A recipe with that title already exists.'
-      });
+          pageTitle: 'Add New Recipe',
+          SID: req.app.locals.SID,
+          form: req.body,
+          mealTypes: MEAL,
+          cuisines: CUI,
+          difficulties: DIFF,
+          error: firstError(err)
+        });
     }
 
     // chef
@@ -133,12 +133,12 @@ exports.create = async (req, res, next) => {
     await Recipe.create(doc);
     res.redirect(`/recipes-${req.app.locals.SID}${req.userIdParam ? ('?userId=' + req.userIdParam) : ''}`);
   } catch (err) {
-    console.error('[createRecipe] DUP?', {
-    code: err.code,
-    keyPattern: err.keyPattern,
-    keyValue: err.keyValue,
-    message: err.message
-  });
+    console.error('[createRecipe] error', {
+      code: err.code,
+      keyPattern: err.keyPattern,
+      keyValue: err.keyValue,
+      message: err.message
+    });
   }
 };
 

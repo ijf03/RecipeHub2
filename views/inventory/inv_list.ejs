@@ -1,3 +1,6 @@
+<% const inventory = Array.isArray(locals.inventory) ? locals.inventory : []; %>
+<% const filters = locals.filters || {}; %>
+<% const lowStockThreshold = (typeof locals.lowStockThreshold !== 'undefined') ? locals.lowStockThreshold : 5; %>
 <!doctype html>
 <html lang="en">
   <head>
@@ -21,12 +24,12 @@
       </div>
 
       <div class="mb-3">
-        <a class="btn btn-primary me-2" href="/inventory/new-<%= SID %>">+ Add Inventory Item</a>
+        <a class="btn btn-primary me-2" href="/inventory/new-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">+ Add Inventory Item</a>
       </div>
 
       <div class="card mb-3 shadow-sm">
         <div class="card-body">
-          <form method="GET" action="/inventory/list-<%= SID %>" class="row g-2 align-items-end" id="invFilters">
+          <form method="GET" action="/inventory-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>" class=row g-2 align-items-end" id="invFilters">
             <% const F = (typeof filters !== 'undefined' && filters) || {}; %>
             <div class="col-12 col-md-4">
               <label for="q" class="form-label">Search</label>
@@ -59,7 +62,7 @@
               <button type="submit" class="btn btn-primary w-100">Apply</button>
             </div>
             <div class="col-6 col-md-1">
-              <a href="/inventory/list-<%= SID %>" class="btn btn-outline-secondary">Clear</a>
+              <a href="/inventory/list-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>" class="btn btn-outline-secondary">Clear</a>
             </div>
           </form>
         </div>
@@ -89,10 +92,18 @@
                 </thead>
                 <tbody>
                   <% for (const i of inventory) { %>
-                    <tr>
+                    <tr class="<%= i.lowStock ? 'table-warning' : '' %>">
                       <td><code class="text-danger"><%= i.inventoryId %></code></td>
                       <td><strong><%= i.ingredientName %></strong></td>
-                      <td><%= i.quantity %></td>
+                      <td>
+                        <%= i.quantity %> <%= i.unit %>
+                        <% if (i.lowStock) { %>
+                          <span class="badge text-bg-warning text-dark ms-1">
+                            Low (< <%= lowStockThreshold %>)
+                          </span>
+                        <% } %>
+                      </td>
+
                       <td><%= i.unit %></td>
                       <td><%= i.category %></td>
                       <td><%= i.location %></td>
@@ -115,11 +126,12 @@
                         <%= i.expirationDate || '-' %> <%- badge %>
                       </td>
                       <td class="text-end">
-                        <a class="btn btn-sm btn-outline-primary me-2" href="/inventory/view-<%= SID %>/<%= i.inventoryId %>">View</a>
+                        <a class="btn btn-sm btn-outline-primary me-2" href="/inventory/view-<%= SID %>/<%= i.inventoryId %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">View</a>
 
                         <form method="POST" action="/inventory/delete-<%= SID %>/<%= i.inventoryId %>" class="d-inline"
                               onsubmit="return confirm('Delete ' + <%- JSON.stringify(i.ingredientName || 'this item') %> + '?');">
                           <input type="hidden" name="inventoryId" value="<%= i.inventoryId %>">
+                          <input type="hidden" name="userId" value="<%= userIdParam %>">
                           <button class="btn btn-sm btn-outline-danger">Delete</button>
                         </form>
                       </td>

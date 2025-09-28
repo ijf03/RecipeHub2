@@ -20,3 +20,8 @@
     margin-top: 2rem;
     margin-bottom: 2rem;
 }
+.is-changed {
+  border-color: #ffcd39 !important;
+  background-color: #fffbea; 
+}
+.original-hint { display: none; }
