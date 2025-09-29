@@ -168,7 +168,7 @@ exports.view = async (req, res, next) => {
 // POST delete recipe by id
 exports.remove = async (req, res, next) => {
   try {
-    const id = req.body.recipeId;
+    const id = req.params.recipeId;
     const or = [{ recipeId: id }];
     if (Types.ObjectId.isValid(id)) {
       or.push({ _id: id });

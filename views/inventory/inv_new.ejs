@@ -22,9 +22,8 @@
         <div class="alert alert-danger"><%= error %></div>
       <% } %>
 
-      <!-- POST route fixed; userId preserved in query + hidden field -->
       <form method="POST"
-            action="/inventory/new-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>"
+            action="/inventory/add-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>"
             class="row g-3">
 
         <input type="hidden" name="userId" value="<%= userIdParam %>">

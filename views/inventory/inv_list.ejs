@@ -24,7 +24,7 @@
       </div>
 
       <div class="mb-3">
-        <a class="btn btn-primary me-2" href="/inventory/new-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">+ Add Inventory Item</a>
+        <a class="btn btn-primary me-2" href="/inventory/add-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">+ Add Inventory Item</a>
       </div>
 
       <div class="card mb-3 shadow-sm">
@@ -62,7 +62,7 @@
               <button type="submit" class="btn btn-primary w-100">Apply</button>
             </div>
             <div class="col-6 col-md-1">
-              <a href="/inventory/list-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>" class="btn btn-outline-secondary">Clear</a>
+              <a href="/inventory-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>" class="btn btn-outline-secondary">Clear</a>
             </div>
           </form>
         </div>
