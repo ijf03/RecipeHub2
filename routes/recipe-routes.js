@@ -9,6 +9,7 @@ router.get(`/recipes-${SID}`, recipeCont.list);
 // NEW RECIPE
 router.get(`/recipe/add-${SID}`, recipeCont.newForm);
 router.post(`/recipe/add-${SID}`, recipeCont.create);
+router.post(`/recipes/duplicate-${SID}/:recipeId`, recipeCont.duplicate);
 
 // VIEW
 router.get(`/recipe/view-${SID}/:recipeId`, recipeCont.view);

@@ -76,5 +76,7 @@ const recipeSchema = new mongoose.Schema({
     default: () => new Date().toISOString().slice(0, 10)
   }
 }, { versionKey: false });
+recipeSchema.index({ userId: 1 });
+recipeSchema.index({ title: 1 });
 
 module.exports = mongoose.model('Recipe', recipeSchema);

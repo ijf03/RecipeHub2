@@ -20,7 +20,7 @@
       </div>
 
       <div class="mb-3">
-        <a class="btn btn-primary me-2" href="/recipe/add-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">+ Add New Recipe</a>
+        <a class="btn btn-primary me-2" href="/recipes/add-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">+ Add New Recipe</a>
 
       </div>
 
@@ -117,22 +117,27 @@
                       <td><%= r.servings %></td>
                       <td class="text-end">
                         <a class="btn btn-sm btn-outline-secondary me-1"
-                          href="/recipe/view-<%= SID %>/<%= r.recipeId %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">
-                          View
-                        </a>
+                          href="/recipe/view-<%= SID %>/<%= r.recipeId %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">View</a>
 
-                        <a class="btn btn-sm btn-outline-primary me-1"
-                          href="/recipe/edit-<%= SID %>/<%= r.recipeId %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">
-                          Edit
-                        </a>
+                        <% if (currentUser && currentUser.role === 'chef' && r.userId === currentUser.userId) { %>
+                          <a class="btn btn-sm btn-outline-primary me-1"
+                            href="/recipe/edit-<%= SID %>/<%= r.recipeId %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">Edit</a>
 
-                        <form method="POST"
-                              action="/recipe/delete-<%= SID %>/<%= r.recipeId %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>"
-                              class="d-inline"
-                              onsubmit="return confirm('Delete <%= r.title.replace(/'/g,'&apos;') %>?')">
-                          <button class="btn btn-sm btn-outline-danger">Delete</button>
-                        </form>
+                          <form method="POST"
+                                action="/recipe/delete-<%= SID %>/<%= r.recipeId %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>"
+                                class="d-inline"
+                                onsubmit="return confirm('Delete <%= r.title.replace(/'/g,'&apos;') %>?')">
+                            <button class="btn btn-sm btn-outline-danger">Delete</button>
+                          </form>
+                        <% } else if (currentUser && currentUser.role === 'chef') { %>
+                          <form method="POST"
+                                action="/recipes/duplicate-<%= SID %>/<%= r.recipeId %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>"
+                                class="d-inline">
+                            <button class="btn btn-sm btn-outline-primary">Duplicate</button>
+                          </form>
+                        <% } %>
                       </td>
+
                     </tr>
                   <% } %>
                 </tbody>

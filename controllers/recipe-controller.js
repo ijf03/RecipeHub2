@@ -33,9 +33,42 @@ function firstError(e) {
     return e.message || 'Validation error.';
   }
 
+function forbid(res, req) {
+  return res.status(403).render('errors/404', { pageTitle: 'Forbidden', url: req.originalUrl });
+}
+
+function requireChef(req, res) {
+  if (!req.currentUser || req.currentUser.role !== 'chef') {
+    forbid(res, req);
+    return false;
+  }
+  return true;
+}
+
+
+async function duplicateRecipeForUser(orig, currentUser) {
+  const newId = await nextRecipeId();
+  const copy = {
+    recipeId: newId,
+    userId: currentUser.userId,
+    title: `${orig.title} (Copy)`,
+    chef: currentUser.fullName,
+    mealType: orig.mealType,
+    cuisineType: orig.cuisineType,
+    prepTime: orig.prepTime,
+    difficulty: orig.difficulty,
+    servings: orig.servings,
+    ingredients: Array.isArray(orig.ingredients) ? orig.ingredients : [],
+    instructions: Array.isArray(orig.instructions) ? orig.instructions : [],
+    createdDate: new Date().toISOString().slice(0, 10)
+  };
+  await Recipe.create(copy);
+  return newId;
+}
 
 //GET recipes
 exports.list = async (req, res, next) => {
+  if (!requireChef(req, res)) return;
   try {
     const filters = {
       q: (req.query.q || '').trim(),
@@ -73,6 +106,8 @@ exports.list = async (req, res, next) => {
 
 // GET new recipe form
 exports.newForm = (req, res) => {
+  if (!requireChef(req, res)) return;
+
   res.render('recipes/recipe_new', {
     pageTitle: 'Add New Recipe',
     SID: req.app.locals.SID,
@@ -91,34 +126,26 @@ const toLines = (s) => String(s || '')
   .filter(Boolean);
 
 exports.create = async (req, res, next) => {
+  if (!requireChef(req, res)) return;
   try {
     const f = req.body;
 
-    //title check
-    const exists = await Recipe.findOne({ title: new RegExp(`^${f.title}$`, 'i') }).lean();
-    if (exists) {
+    const dup = await Recipe.findOne({ title: new RegExp(`^${f.title}$`, 'i') }).lean();
+    if (dup) {
       return res.status(400).render('recipes/recipe_new', {
         pageTitle: 'Add New Recipe',
         SID: req.app.locals.SID,
         form: req.body,
-        mealTypes: MEAL,
-        cuisines: CUI,
-        difficulties: DIFF,
-          error: firstError(err)
+        mealTypes: MEAL, cuisines: CUI, difficulties: DIFF,
+        error: 'A recipe with that title already exists.'
       });
-    }
-
-    // chef
-    let chefName = String(f.chef || '').trim();
-    if ((f.isMine === 'on' || f.isMine === 'true' || f.isMine === '1') && req.currentUser) {
-      chefName = req.currentUser.fullName;
     }
 
     const doc = {
       recipeId: await nextRecipeId(),
-      userId: (req.currentUser && req.currentUser.userId) || req.userIdParam || '',
+      userId: req.currentUser.userId,
       title: String(f.title || '').trim(),
-      chef: chefName,
+      chef: req.currentUser.fullName,
       mealType: f.mealType,
       cuisineType: f.cuisineType,
       prepTime: Number(f.prepTime),
@@ -129,9 +156,8 @@ exports.create = async (req, res, next) => {
       createdDate: new Date().toISOString().slice(0, 10)
     };
 
-
     await Recipe.create(doc);
-    res.redirect(`/recipes-${req.app.locals.SID}${req.userIdParam ? ('?userId=' + req.userIdParam) : ''}`);
+    res.redirect(`/recipes-${req.app.locals.SID}${req.userIdParam ? ('?userId=' + req.userIdParam) : ''}`); 
   } catch (err) {
     console.error('[createRecipe] error', {
       code: err.code,
@@ -145,6 +171,7 @@ exports.create = async (req, res, next) => {
 //GET recipe by id
 exports.view = async (req, res, next) => {
   try {
+    if (!requireChef(req, res)) return;
     const id = req.params.recipeId;
     const or = [{ recipeId: id }];
     if (Types.ObjectId.isValid(id)) or.push({ _id: id });
@@ -168,34 +195,44 @@ exports.view = async (req, res, next) => {
 // POST delete recipe by id
 exports.remove = async (req, res, next) => {
   try {
+    if (!requireChef(req, res)) return;
+
     const id = req.params.recipeId;
     const or = [{ recipeId: id }];
-    if (Types.ObjectId.isValid(id)) {
-      or.push({ _id: id });
+    const existing = await Recipe.findOne({ $or: or }).lean();
+    if (!existing) {
+      return res.redirect(`/recipes-${req.app.locals.SID}${req.userIdParam ? ('?userId=' + req.userIdParam) : ''}`);
+    }
+    if (existing.userId !== req.currentUser.userId) {
+      return res.redirect(`/recipes-${req.app.locals.SID}${req.userIdParam ? ('?userId=' + req.userIdParam + '&') : '?'}msg=Cannot%20delete%20another%20chef%27s%20recipe`);
     }
 
-    await Recipe.deleteOne({ $or: or });
-    res.redirect(`/recipes-${req.app.locals.SID}${req.userIdParam ? ('?userId=' + req.userIdParam) : ''}`);
+    await Recipe.deleteOne({ $or: or, userId: req.currentUser.userId });
+    return res.redirect(`/recipes-${req.app.locals.SID}${req.userIdParam ? ('?userId=' + req.userIdParam) : ''}`);
   } catch (err) { next(err); }
 };
 
 // GET edit recipe form
 exports.editForm = async (req, res, next) => {
   try {
+    if (!requireChef(req, res)) return;
+
     const id = req.params.recipeId;
     const or = [{ recipeId: id }];
     const recipe = await Recipe.findOne({ $or: or }).lean();
-    if (!recipe) {
-      return res.status(404).render('errors/404', { pageTitle: 'Not Found', url: req.originalUrl });
-    }
+    if (!recipe) return res.status(404).render('errors/404', { pageTitle: 'Not Found', url: req.originalUrl });
 
-    res.render('recipes/recipe_edit', {
+    if (recipe.userId !== req.currentUser.userId) {
+      const newId = await duplicateRecipeForUser(recipe, req.currentUser);
+      return res.redirect(`/recipes/edit-${req.app.locals.SID}/${newId}${req.userIdParam ? ('?userId=' + req.userIdParam) : ''}`);
+    } 
+
+    // owner can edit normally
+    return res.render('recipes/recipe_edit', {
       pageTitle: 'Edit Recipe',
       SID: req.app.locals.SID,
       form: recipe,
-      mealTypes: MEAL,
-      cuisines: CUI,
-      difficulties: DIFF,
+      mealTypes: MEAL, cuisines: CUI, difficulties: DIFF,
       error: null
     });
   } catch (err) { next(err); }
@@ -204,54 +241,46 @@ exports.editForm = async (req, res, next) => {
 // POST update
 exports.update = async (req, res, next) => {
   try {
-    const id = req.params.recipeId;
-    const or = [{ recipeId: id }];
+if (!requireChef(req, res)) return;
 
-    const f = req.body;
+const id = req.params.recipeId;
+const or = [{ recipeId: id }];
+const existing = await Recipe.findOne({ $or: or }).lean();
+if (!existing) {
+  return res.status(404).render('errors/404', { pageTitle: 'Not Found', url: req.originalUrl });
+}
 
-    // prevent same title
-    const current = await Recipe.findOne({ $or: or }, { _id: 1 }).lean();
-    if (!current) {
-      return res.status(404).render('errors/404', { pageTitle: 'Not Found', url: req.originalUrl });
-    }
-    const dup = await Recipe.findOne({
-      title: new RegExp(`^${f.title}$`, 'i'),
-      _id: { $ne: current._id }
-    }).lean();
-    if (dup) {
-      return res.status(400).render('recipes/recipe_edit', {
-        pageTitle: 'Edit Recipe',
-        SID: req.app.locals.SID,
-        form: { ...f, recipeId: id },
-        mealTypes: MEAL,
-        cuisines: CUI,
-        difficulties: DIFF,
-        error: 'A recipe with that title already exists.'
-      });
-    }
+// if not owner, make copy
+if (existing.userId !== req.currentUser.userId) {
+  const newId = await duplicateRecipeForUser(existing, req.currentUser, {
+    title: String(req.body.title || existing.title).trim(),
+    mealType: req.body.mealType || existing.mealType,
+    cuisineType: req.body.cuisineType || existing.cuisineType,
+    prepTime: Number(req.body.prepTime || existing.prepTime),
+    difficulty: req.body.difficulty || existing.difficulty,
+    servings: Number(req.body.servings || existing.servings),
+    ingredients: toLines(req.body.ingredients || existing.ingredients.join('\n')),
+    instructions: toLines(req.body.instructions || existing.instructions.join('\n')),
+  });
+  return res.redirect(`/recipes-${req.app.locals.SID}${req.userIdParam ? ('?userId=' + req.userIdParam + '&') : '?'}msg=Recipe%20updated`);
+}
 
-    let chefName = String(f.chef || '').trim();
-    if ((f.isMine === 'on' || f.isMine === 'true' || f.isMine === '1') && req.currentUser) {
-      chefName = req.currentUser.fullName;
-    }
+// if owner, then:
+await Recipe.updateOne({ $or: or, userId: req.currentUser.userId }, {
+  $set: {
+    title: String(req.body.title || '').trim(),
+    chef: req.currentUser.fullName, // auto assign
+    mealType: req.body.mealType,
+    cuisineType: req.body.cuisineType,
+    prepTime: Number(req.body.prepTime),
+    difficulty: req.body.difficulty,
+    servings: Number(req.body.servings),
+    ingredients: toLines(req.body.ingredients),
+    instructions: toLines(req.body.instructions),
+  }
+}, { runValidators: true });
 
-    await Recipe.updateOne({ $or: or }, {
-      $set: {
-        title: String(f.title || '').trim(),
-        chef: chefName,
-        mealType: f.mealType,
-        cuisineType: f.cuisineType,
-        prepTime: Number(f.prepTime),
-        difficulty: f.difficulty,
-        servings: Number(f.servings),
-        ingredients: String(f.ingredients || '')
-          .split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean),
-        instructions: String(f.instructions || '')
-          .split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean),
-      }
-    }, { runValidators: true });
-
-    res.redirect(`/recipes-${req.app.locals.SID}${req.userIdParam ? ('?userId=' + req.userIdParam + '&') : '?'}msg=Recipe%20updated`);
+return res.redirect(`/recipes-${req.app.locals.SID}${req.userIdParam ? ('?userId=' + req.userIdParam + '&') : '?'}msg=Recipe%20updated`);
   } catch (err) {
     res.status(400).render('recipes/recipe_edit', {
       pageTitle: 'Edit Recipe',
@@ -263,4 +292,19 @@ exports.update = async (req, res, next) => {
       error: err.message || 'Validation error.'
     });
   }
+};
+
+exports.duplicate = async (req, res, next) => {
+  try {
+    if (!requireChef(req, res)) return;
+    const id = req.params.recipeId;
+    const or = [{ recipeId: id }];
+    const orig = await Recipe.findOne({ $or: or }).lean();
+    if (!orig) {
+      return res.status(404).render('errors/404', { pageTitle: 'Not Found', url: req.originalUrl });
+    }
+    const newId = await duplicateRecipeForUser(orig, req.currentUser);
+    const q = req.userIdParam ? (`?userId=${req.userIdParam}&msg=Copied%20to%20your%20recipes`): `?msg=Copied%20to%20your%20recipes`;
+    res.redirect(`/recipes/edit-${req.app.locals.SID}/${newId}${q}`);
+  } catch (err) { next(err); }
 };

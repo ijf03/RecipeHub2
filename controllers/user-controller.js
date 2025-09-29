@@ -61,6 +61,7 @@ exports.register = async (req, res) => {
 
     await User.create({
       userId: await nextUserId(),
+      fullName: String(fullName).trim(),
       email: String(email).toLowerCase().trim(),
       password,
       role,

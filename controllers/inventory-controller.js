@@ -15,8 +15,17 @@ async function uniqueInventoryId(Model) {
   return `I-${String(count + 1).padStart(5, '0')}`;
 }
 
+function requireLogin(req, res) {
+  if (!req.currentUser) {
+    res.status(403).render('errors/404', { pageTitle: 'Forbidden', url: req.originalUrl });
+    return false;
+  }
+  return true;
+}
+
 // GET inventory
 exports.list = async (req, res, next) => {
+  if (!requireLogin(req, res)) return;
   try {
     const SID = req.app.locals.SID;
     const filters = {
@@ -64,6 +73,7 @@ exports.list = async (req, res, next) => {
 
 // GET new item
 exports.newForm = (req, res) => {
+  if (!requireLogin(req, res)) return;
   res.render('inventory/inv_new', {
     pageTitle: 'New Inventory Item',
     SID: req.app.locals.SID,
@@ -77,6 +87,7 @@ exports.newForm = (req, res) => {
 
 // POST new item
 exports.create = async (req, res, next) => {
+  if (!requireLogin(req, res)) return;
   try {
     const SID = req.app.locals.SID;
     const form = req.body;
@@ -112,6 +123,7 @@ exports.create = async (req, res, next) => {
 
 // GET inv
 exports.view = async (req, res, next) => {
+  if (!requireLogin(req, res)) return;
   try {
     const doc = await Inventory.findOne({ inventoryId: req.params.inventoryId }).lean();
     if (!doc) {
@@ -127,6 +139,7 @@ exports.view = async (req, res, next) => {
 
 // POST delete inv by id
 exports.remove = async (req, res, next) => {
+  if (!requireLogin(req, res)) return;
   try {
     const SID = req.app.locals.SID;
     await Inventory.deleteOne({ inventoryId: req.params.inventoryId });
@@ -135,6 +148,7 @@ exports.remove = async (req, res, next) => {
 };
 
 exports.expiringSoon = async (req, res, next) => {
+  if (!requireLogin(req, res)) return;
   try {
     const soon = new Date();
     soon.setDate(soon.getDate() + 7); //in 7 days
@@ -151,6 +165,7 @@ exports.expiringSoon = async (req, res, next) => {
 };
 
 exports.value = async (req, res, next) => {
+  if (!requireLogin(req, res)) return;
   try {
     const result = await Inventory.aggregate([
       { $group: { _id: null, totalValue: { $sum: { $multiply: ["$quantity", "$cost"] } } } }
@@ -166,6 +181,7 @@ exports.value = async (req, res, next) => {
 };
 
 exports.editForm = async (req, res, next) => {
+  if (!requireLogin(req, res)) return;
   try {
     const item = await Inventory.findOne({ inventoryId: req.params.inventoryId }).lean();
     if (!item) return res.status(404).render('errors/404', { pageTitle:'Not Found', url:req.originalUrl });
@@ -183,6 +199,7 @@ exports.editForm = async (req, res, next) => {
 };
 
 exports.update = async (req, res, next) => {
+  if (!requireLogin(req, res)) return;
   try {
     const { inventoryId } = req.params;
     const form = req.body;

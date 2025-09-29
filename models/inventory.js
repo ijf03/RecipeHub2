@@ -84,5 +84,7 @@ const inventorySchema = new mongoose.Schema({
     default: () => new Date().toISOString().slice(0, 10)
   }
 }, { versionKey: false });
+inventorySchema.index({ ingredientName: 1 });
+inventorySchema.index({ expirationDate: 1 });
 
 module.exports = mongoose.model('Inventory', inventorySchema);

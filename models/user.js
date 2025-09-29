@@ -55,4 +55,7 @@ const userSchema = new mongoose.Schema({
   isLoggedIn: { type: Boolean, default: false }
 }, { versionKey: false });
 
+userSchema.index({ userId: 1 });
+userSchema.index({ role: 1 });
+
 module.exports = mongoose.model('User', userSchema);

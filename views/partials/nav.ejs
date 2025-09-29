@@ -19,18 +19,25 @@
             Home
           </a>
         </li>
-        <li class="nav-item">
-          <a class="nav-link"
-            href="/recipes-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">
-            Recipes
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link"
-            href="/inventory-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">
-            Inventory
-          </a>
-        </li>
+        
+        <% if (currentUser && currentUser.role === 'chef') { %>
+          <li class="nav-item">
+            <a class="nav-link"
+              href="/recipes-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">
+              Recipes
+            </a>
+          </li>
+        <% } %>
+
+        <% if (currentUser) { %>
+          <li class="nav-item">
+            <a class="nav-link"
+              href="/inventory-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">
+              Inventory
+            </a>
+          </li>
+        <% } %>
+
        <li class="nav-item">
           <% if (currentUser) { %>
             <a class="nav-link" href="/logout-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">
