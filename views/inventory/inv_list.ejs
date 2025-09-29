@@ -126,16 +126,23 @@
                         <%= i.expirationDate || '-' %> <%- badge %>
                       </td>
                       <td class="text-end">
-                        <a class="btn btn-sm btn-outline-primary me-2" href="/inventory/view-<%= SID %>/<%= i.inventoryId %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">View</a>
+                        <a class="btn btn-sm btn-outline-secondary me-1"
+                          href="/inventory/view-<%= SID %>/<%= i.inventoryId %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">
+                          View
+                        </a>
 
-                        <form method="POST" action="/inventory/delete-<%= SID %>/<%= i.inventoryId %>" class="d-inline"
-                              onsubmit="return confirm('Delete ' + <%- JSON.stringify(i.ingredientName || 'this item') %> + '?');">
-                          <input type="hidden" name="inventoryId" value="<%= i.inventoryId %>">
-                          <input type="hidden" name="userId" value="<%= userIdParam %>">
+                        <a class="btn btn-sm btn-outline-primary me-1"
+                          href="/inventory/edit-<%= SID %>/<%= i.inventoryId %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">
+                          Edit
+                        </a>
+
+                        <form method="POST"
+                              action="/inventory/delete-<%= SID %>/<%= i.inventoryId %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>"
+                              class="d-inline"
+                              onsubmit="return confirm('Delete <%= i.ingredientName.replace(/'/g,'&apos;') %>?')">
                           <button class="btn btn-sm btn-outline-danger">Delete</button>
                         </form>
                       </td>
-                    </tr>
                   <% } %>
                 </tbody>
                 <tfoot class="table-light">

@@ -116,13 +116,21 @@
                       <td><%= r.prepTime %> min</td>
                       <td><%= r.servings %></td>
                       <td class="text-end">
-                        <a class="btn btn-sm btn-outline-primary me-2"
-                          href="/recipe/<%= r.recipeId %>-<%= SID %>">View</a>
+                        <a class="btn btn-sm btn-outline-secondary me-1"
+                          href="/recipe/<%= r.recipeId %>-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">
+                          View
+                        </a>
 
-                        <form method="POST" action="/delete-recipe-<%= SID %>" class="d-inline"
-                              onsubmit="return confirm('Delete <%= r.title.replace(/\'/g, '&#39;') %>?');">
+                        <a class="btn btn-sm btn-outline-primary me-1"
+                          href="/recipe/edit-<%= SID %>/<%= r.recipeId %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">
+                          Edit
+                        </a>
+
+                        <form method="POST"
+                              action="/recipe/delete-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>"
+                              class="d-inline"
+                              onsubmit="return confirm('Delete <%= r.title.replace(/'/g,'&apos;') %>?')">
                           <input type="hidden" name="recipeId" value="<%= r.recipeId %>">
-                          <input type="hidden" name="userId" value="<%= userIdParam %>">
                           <button class="btn btn-sm btn-outline-danger">Delete</button>
                         </form>
                       </td>

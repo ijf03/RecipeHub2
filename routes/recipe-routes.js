@@ -15,6 +15,10 @@ router.post(`/add-recipe-${SID}`, recipeCont.create);
 router.get(`/recipe/:recipeId-${SID}`, recipeCont.view);
 
 // DELETE
-router.post(`/delete-recipe-${SID}`, recipeCont.remove);
+router.post(`/recipe/delete-${SID}`, recipeCont.remove);
+
+// EDIT
+router.get(`/recipe/edit-${SID}/:recipeId`, recipeCont.editForm);
+router.post(`/recipe/edit-${SID}/:recipeId`, recipeCont.update);
 
 module.exports = router;

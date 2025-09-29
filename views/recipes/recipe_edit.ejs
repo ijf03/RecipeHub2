@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title><%= pageTitle %></title>
+    <link rel="stylesheet" href="/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body class="bg-light d-flex flex-column min-vh-100">
+    <%- include('../partials/nav') %>
+
+    <main class="container" style="margin-top:4.5rem">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h1 class="h1 m-0">Edit Recipe</h1>
+        <a class="btn btn-outline-secondary"
+           href="/recipes-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">
+          Back to Recipes
+        </a>
+      </div>
+
+      <% if (error) { %>
+        <div class="alert alert-danger"><%= error %></div>
+      <% } %>
+
+      <form method="POST"
+            action="/edit-recipe-<%= SID %>/<%= form?.recipeId %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>"
+            class="row g-3">
+
+        <input type="hidden" name="userId" value="<%= userIdParam %>">
+        <input type="hidden" name="recipeId" value="<%= form?.recipeId %>">
+
+        <div class="col-md-6">
+          <label class="form-label">Title</label>
+          <input name="title" class="form-control" required minlength="3"
+                 value="<%= form?.title || '' %>" placeholder="e.g. Chocolate Cake">
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Chef Name*</label>
+          <input name="chef" class="form-control" required
+                 value="<%= form?.chef || '' %>" placeholder="e.g. Gordon Ramsay">
+        </div>
+
+        <% if (currentUser) { %>
+          <div class="col-md-12">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="isMine" name="isMine">
+              <label class="form-check-label" for="isMine">
+                This recipe is mine (<%= currentUser.fullName %>)
+              </label>
+            </div>
+          </div>
+        <% } %>
+
+        <div class="col-md-6">
+          <label class="form-label">Meal Type</label>
+          <select name="mealType" class="form-select" required>
+            <option value="">=== Meal Type ===</option>
+            <% (mealTypes || []).forEach(function(m){ %>
+              <option value="<%= m %>" <%= (form && form.mealType === m) ? 'selected' : '' %>><%= m %></option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Cuisine Type</label>
+          <select name="cuisineType" class="form-select" required>
+            <option value="">=== Cuisine ===</option>
+            <% (cuisines || []).forEach(function(c){ %>
+              <option value="<%= c %>" <%= (form && form.cuisineType === c) ? 'selected' : '' %>><%= c %></option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Difficulty</label>
+          <select name="difficulty" class="form-select" required>
+            <option value="">=== Difficulty ===</option>
+            <% (difficulties || []).forEach(function(d){ %>
+              <option value="<%= d %>" <%= (form && form.difficulty === d) ? 'selected' : '' %>><%= d %></option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Prep Time (mins)</label>
+          <input type="number" name="prepTime" class="form-control" min="1" required
+                 value="<%= form?.prepTime || '' %>">
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Servings</label>
+          <input type="number" name="servings" class="form-control" min="1" step="1" required
+                 value="<%= form?.servings || '' %>">
+        </div>
+
+        <div class="col-md-12">
+          <label class="form-label">Ingredients (one per line or comma-separated)</label>
+          <textarea name="ingredients" rows="6" class="form-control" required><%= Array.isArray(form?.ingredients) ? form.ingredients.join('\n') : (form?.ingredients || '') %></textarea>
+        </div>
+
+        <div class="col-md-12">
+          <label class="form-label">Instructions (one per line or comma-separated)</label>
+          <textarea name="instructions" rows="6" class="form-control" required><%= Array.isArray(form?.instructions) ? form.instructions.join('\n') : (form?.instructions || '') %></textarea>
+        </div>
+
+        <div class="col-12">
+          <button class="btn btn-primary">Save Changes</button>
+          <a class="btn btn-secondary"
+             href="/recipes-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">
+            Cancel
+          </a>
+        </div>
+      </form>
+    </main>
+
+    <%- include('../partials/footer') %>
+
+    <% if (currentUser) { %>
+      <script>
+        (function () {
+          var box = document.getElementById('isMine');
+          if (!box) return;
+          var chef = document.querySelector('input[name="chef"]');
+          var myName = "<%= currentUser.fullName %>";
+          function sync() {
+            if (box.checked) {
+              chef.value = myName;
+              chef.readOnly = true;
+              chef.required = false;
+            } else {
+              chef.readOnly = false;
+              chef.required = true;
+            }
+          }
+          box.addEventListener('change', sync);
+          sync();
+        })();
+      </script>
+    <% } %>
+  </body>
+</html>

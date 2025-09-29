@@ -98,14 +98,14 @@ exports.create = async (req, res, next) => {
     const exists = await Recipe.findOne({ title: new RegExp(`^${f.title}$`, 'i') }).lean();
     if (exists) {
       return res.status(400).render('recipes/recipe_new', {
-          pageTitle: 'Add New Recipe',
-          SID: req.app.locals.SID,
-          form: req.body,
-          mealTypes: MEAL,
-          cuisines: CUI,
-          difficulties: DIFF,
+        pageTitle: 'Add New Recipe',
+        SID: req.app.locals.SID,
+        form: req.body,
+        mealTypes: MEAL,
+        cuisines: CUI,
+        difficulties: DIFF,
           error: firstError(err)
-        });
+      });
     }
 
     // chef
@@ -177,4 +177,90 @@ exports.remove = async (req, res, next) => {
     await Recipe.deleteOne({ $or: or });
     res.redirect(`/recipes-${req.app.locals.SID}${req.userIdParam ? ('?userId=' + req.userIdParam) : ''}`);
   } catch (err) { next(err); }
+};
+
+// GET edit recipe form
+exports.editForm = async (req, res, next) => {
+  try {
+    const id = req.params.recipeId;
+    const or = [{ recipeId: id }];
+    const recipe = await Recipe.findOne({ $or: or }).lean();
+    if (!recipe) {
+      return res.status(404).render('errors/404', { pageTitle: 'Not Found', url: req.originalUrl });
+    }
+
+    res.render('recipes/recipe_edit', {
+      pageTitle: 'Edit Recipe',
+      SID: req.app.locals.SID,
+      form: recipe,
+      mealTypes: MEAL,
+      cuisines: CUI,
+      difficulties: DIFF,
+      error: null
+    });
+  } catch (err) { next(err); }
+};
+
+// POST update
+exports.update = async (req, res, next) => {
+  try {
+    const id = req.params.recipeId;
+    const or = [{ recipeId: id }];
+
+    const f = req.body;
+
+    // prevent same title
+    const current = await Recipe.findOne({ $or: or }, { _id: 1 }).lean();
+    if (!current) {
+      return res.status(404).render('errors/404', { pageTitle: 'Not Found', url: req.originalUrl });
+    }
+    const dup = await Recipe.findOne({
+      title: new RegExp(`^${f.title}$`, 'i'),
+      _id: { $ne: current._id }
+    }).lean();
+    if (dup) {
+      return res.status(400).render('recipes/recipe_edit', {
+        pageTitle: 'Edit Recipe',
+        SID: req.app.locals.SID,
+        form: { ...f, recipeId: id },
+        mealTypes: MEAL,
+        cuisines: CUI,
+        difficulties: DIFF,
+        error: 'A recipe with that title already exists.'
+      });
+    }
+
+    let chefName = String(f.chef || '').trim();
+    if ((f.isMine === 'on' || f.isMine === 'true' || f.isMine === '1') && req.currentUser) {
+      chefName = req.currentUser.fullName;
+    }
+
+    await Recipe.updateOne({ $or: or }, {
+      $set: {
+        title: String(f.title || '').trim(),
+        chef: chefName,
+        mealType: f.mealType,
+        cuisineType: f.cuisineType,
+        prepTime: Number(f.prepTime),
+        difficulty: f.difficulty,
+        servings: Number(f.servings),
+        ingredients: String(f.ingredients || '')
+          .split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean),
+        instructions: String(f.instructions || '')
+          .split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean),
+      }
+    }, { runValidators: true });
+
+    res.redirect(`/recipes-${req.app.locals.SID}${req.userIdParam ? ('?userId=' + req.userIdParam + '&') : '?'}msg=Recipe%20updated`);
+  } catch (err) {
+    res.status(400).render('recipes/recipe_edit', {
+      pageTitle: 'Edit Recipe',
+      SID: req.app.locals.SID,
+      form: { ...req.body, recipeId: req.params.recipeId },
+      mealTypes: MEAL,
+      cuisines: CUI,
+      difficulties: DIFF,
+      error: err.message || 'Validation error.'
+    });
+  }
 };
