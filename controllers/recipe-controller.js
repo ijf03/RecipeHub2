@@ -305,6 +305,6 @@ exports.duplicate = async (req, res, next) => {
     }
     const newId = await duplicateRecipeForUser(orig, req.currentUser);
     const q = req.userIdParam ? (`?userId=${req.userIdParam}&msg=Copied%20to%20your%20recipes`): `?msg=Copied%20to%20your%20recipes`;
-    res.redirect(`/recipes/edit-${req.app.locals.SID}/${newId}${q}`);
+    res.redirect(`/recipe/edit-${req.app.locals.SID}/${newId}${q}`);
   } catch (err) { next(err); }
 };
