@@ -136,16 +136,16 @@
     <script>
     (function () {
         function normalize(v) { return (v ?? '').toString().trim(); }
-        document.querySelectorAll('.track-change').forEach(function(el){
-        var orig = normalize(el.getAttribute('data-original'));
+        document.querySelectorAll('.track-change').forEach(function(el){ //finds teh inputs
+        var orig = normalize(el.getAttribute('data-original')); // orig vals from data
         var hint = el.parentElement.querySelector('.original-hint'); 
-        function update() {
+        function update() {// check change
             var now = normalize(el.value);
             var changed = now !== orig;
 
-            el.classList.toggle('is-changed', changed);
-            el.classList.toggle('border-warning', changed);
-            el.classList.toggle('bg-warning-subtle', changed);
+            el.classList.toggle('is-changed', changed); //highlight change
+            el.classList.toggle('border-warning', changed);//highlight change
+            el.classList.toggle('bg-warning-subtle', changed);//highlight change
 
             if (hint) {
             if (changed) {
@@ -157,8 +157,8 @@
             }
             }
         }
-        el.addEventListener('input', update);
-        el.addEventListener('change', update);
+        el.addEventListener('input', update); //check if typing
+        el.addEventListener('change', update); //check if theres a change
         update();
         });
     })();

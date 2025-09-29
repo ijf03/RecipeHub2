@@ -120,11 +120,11 @@
     <% if (currentUser) { %>
       <script>
         (function () {
-          var box = document.getElementById('isMine');
-          if (!box) return;
+          var box = document.getElementById('isMine'); // checks if the is mine box is checked
+          if (!box) return;  
           var chef = document.querySelector('input[name="chef"]');
           var myName = "<%= currentUser.fullName %>";
-          function sync() {
+          function sync() { // makes the chef feild readonly if box is checked
             if (box.checked) {
               chef.value = myName;
               chef.readOnly = true;

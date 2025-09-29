@@ -10,7 +10,7 @@ const LOW_STOCK_THRESHOLD = 5;
 
 const today = new Date().toISOString().slice(0,10);
 
-async function uniqueInventoryId(Model) {
+async function uniqueInventoryId(Model) { // makes a new unique id 
   const last = await Model.findOne({}, { inventoryId: 1 })
     .sort({ inventoryId: -1 })
     .lean();
@@ -22,7 +22,7 @@ async function uniqueInventoryId(Model) {
   return `I-${String(lastNum + 1).padStart(5, '0')}`;
 }
 
-function requireLogin(req, res) {
+function requireLogin(req, res) { // checks if someone is logged in
   if (!req.currentUser) {
     res.status(403).render('errors/404', { pageTitle: 'Forbidden', url: req.originalUrl });
     return false;
