@@ -45,48 +45,77 @@
             </div>
           </div>
 
-          <div class="col-12 col-md-4">
-            <div class="card stat-card h-100">
-              <div class="card-body text-center">
-                <h6 class="text-uppercase text-muted mb-2">Recipes</h6>
-                <% if (currentUser && typeof myRecipeCount === 'number') { %>
-                  <p class="stat-value"><%= myRecipeCount %> / <%= recipeCount %></p>
-                  <small class="text-muted">My Recipes / Total</small>
-                <% } else { %>
-                  <p class="stat-value"><%= recipeCount %></p>
-                <% } %>
+          <% if (currentUser && currentUser.role === 'chef') { %>
+            <!-- Chef sees recipe stats -->
+            <div class="col-12 col-md-4">
+              <div class="card stat-card h-100">
+                <div class="card-body text-center">
+                  <h6 class="text-uppercase text-muted mb-2">Recipes</h6>
+                  <% if (typeof myRecipeCount === 'number') { %>
+                    <p class="stat-value"><%= myRecipeCount %> / <%= recipeCount %></p>
+                    <small class="text-muted">My Recipes / Total</small>
+                  <% } else { %>
+                    <p class="stat-value"><%= recipeCount %></p>
+                  <% } %>
+                </div>
               </div>
             </div>
-          </div>
+          <% } else { %>
+            <!-- Admin/Manager: show Expiring Soon instead of Recipes -->
+            <div class="col-12 col-md-4">
+              <div class="card stat-card h-100">
+                <div class="card-body text-center">
+                  <h6 class="text-uppercase text-muted mb-2">Expiring Soon (7 days)</h6>
+                  <p class="stat-value"><%= typeof expiringSoonCount === 'number' ? expiringSoonCount : 0 %></p>
+                </div>
+              </div>
+            </div>
+          <% } %>
 
+          <!-- Inventory Items OR Inventory Value (show value alongside items) -->
           <div class="col-12 col-md-4">
             <div class="card stat-card h-100">
               <div class="card-body text-center">
                 <h6 class="text-uppercase text-muted mb-2">Inventory Items</h6>
                 <p class="stat-value"><%= inventoryCount %></p>
+                <% if (typeof inventoryValue === 'number') { %>
+                  <div class="small text-muted">Value: $<%= inventoryValue.toFixed ? inventoryValue.toFixed(2) : inventoryValue %></div>
+                <% } %>
               </div>
             </div>
           </div>
+
         </div>
       </section>
 
-      <!-- Primary CTAs -->
-      <section class="section">
-        <div class="row g-3">
+    <!-- Primary CTAs -->
+    <section class="section">
+      <div class="row g-3">
+        <% if (currentUser && currentUser.role === 'chef') { %>
           <div class="col-12 col-md-6">
             <a class="btn btn-primary w-100 py-3"
-               href="/recipes-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">
+              href="/recipes-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">
               View Recipes
             </a>
           </div>
           <div class="col-12 col-md-6">
             <a class="btn btn-outline-primary w-100 py-3"
-               href="/inventory-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">
+              href="/inventory-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">
               View Inventory
             </a>
           </div>
-        </div>
-      </section>
+        <% } else { %>
+          <!-- Admin inventory only -->
+          <div class="col-12">
+            <a class="btn btn-outline-primary w-100 py-3"
+              href="/inventory-<%= SID %><%= userIdParam ? ('?userId=' + userIdParam) : '' %>">
+              View Inventory
+            </a>
+          </div>
+        <% } %>
+      </div>
+    </section>
+
     </main>
 
     <%- include('partials/footer') %>

@@ -11,8 +11,15 @@ const LOW_STOCK_THRESHOLD = 5;
 const today = new Date().toISOString().slice(0,10);
 
 async function uniqueInventoryId(Model) {
-  const count = await Model.countDocuments();
-  return `I-${String(count + 1).padStart(5, '0')}`;
+  const last = await Model.findOne({}, { inventoryId: 1 })
+    .sort({ inventoryId: -1 })
+    .lean();
+
+  const lastNum = last
+    ? parseInt(last.inventoryId.split('-')[1], 10)
+    : 0;
+
+  return `I-${String(lastNum + 1).padStart(5, '0')}`;
 }
 
 function requireLogin(req, res) {
